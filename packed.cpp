@@ -487,6 +487,19 @@ matrix<double> max (const matrix<double>& M, double a)
     return result;
 }
 
+matrix<double> abs (const matrix<double>& M)
+{
+    matrix<double> result(M.rows, M.cols);
+    for(size_t i = 0; i < M.rows; i++)
+    {
+        for(size_t j = 0; j < M.cols; j++)
+        {
+            result(abs(M(i, j)), i, j);
+        }
+    }
+    return result;
+}
+
 matrix<double> sigmoid (const matrix<double>& M)
 {
     return !(exp(-M) + 1);
@@ -534,25 +547,18 @@ matrix<double> softmax_der (const matrix<double>& M)
     return softmax(M)*(-softmax(M) + 1);
 }
 
-matrix<double>* regression_loss (const matrix<double>& predictions, const matrix<double>& labels)
+matrix<double>* regression_cost (const matrix<double>& predictions, const matrix<double>& labels, size_t batch_size)
 {
     matrix<double>* result = new matrix<double> (1,1);
-    *result >> predictions - labels;
-    *result <= (*result)*(predictions - labels);
-    *result <= (*result)/2;
-    return result;
-}
-
-matrix<double>* regression_error (const matrix<double>& predictions, const matrix<double>& labels)
-{
-    matrix<double>* result = new matrix<double> (1,1);
-    *result >> predictions - labels;
+    *result >> abs(predictions - labels)[0]/(double)batch_size;
+    // *result << ',';
     return result;
 }
 
 void regression_error (matrix<double>* propagator, const matrix<double>& labels)
 {
-    *propagator <= (*propagator) - labels;
+    (*propagator) <= ((*propagator) - labels);
+    // *propagator << ',';
 }
 
 typedef class Layer
@@ -561,6 +567,7 @@ typedef class Layer
     layerType_t layerType;
     size_t input_size;
     size_t output_size;
+    size_t batch_size;
 
     matrix<double> *weights;
     matrix<double> *biases;
@@ -569,18 +576,19 @@ typedef class Layer
     matrix<double> *errors;
 
 public:
-    Layer (size_t in, size_t out, layerType_t lrt = DENSE, activation_t act = LINEAR)
+    Layer (size_t in, size_t out, layerType_t lrt = DENSE, activation_t act = LINEAR, size_t bs = 1)
     {
         input_size = in;
         output_size = out;
+        batch_size = bs;
         layerType = lrt;
         activation = act;
 
         weights = new matrix<double>(input_size, output_size);
         biases = new matrix<double>(1, output_size);
-        inputs = new matrix<double>(1, input_size);
-        outputs = new matrix<double>(1, output_size);
-        errors = new matrix<double>(1, output_size);
+        inputs = new matrix<double>(batch_size, input_size);
+        outputs = new matrix<double>(batch_size, output_size);
+        errors = new matrix<double>(batch_size, output_size);
         for( size_t i = 0; i < input_size; i++)
         {
             for( size_t j = 0; j < output_size; j++)
@@ -605,78 +613,78 @@ public:
 
     void forward (matrix<double>* input)
     {
-        std::cout << "FORWARD PROPAGATION\n";
+        // std::cout << "FORWARD PROPAGATION\n";
         (*inputs) <= (*input);
-        (*input) << ',';
-        std::cout << "*\n";
-        (*weights) << ',';
-        std::cout << "+\n";
-        (*biases) << ',';
-        std::cout << "=\n";
+        // (*input) << ',';
+        // std::cout << "*\n";
+        // (*weights) << ',';
+        // std::cout << "+\n";
+        // (*biases) << ',';
+        // std::cout << "=\n";
         (*input) >> (*input)%(*weights) + (*biases);
-        (*input) << ',';
+        // (*input) << ',';
         (*outputs) <= (*input);
         switch(activation)
         {
         case SIGMOID:
-            std::cout << "~(sigmoid)~\n";
+            // std::cout << "~(sigmoid)~\n";
             (*input) <= sigmoid(*input);
-            (*input) << ',';
+            // (*input) << ',';
             break;
 
         case RELU:
-            std::cout << "~(relU)~\n";
+            // std::cout << "~(relU)~\n";
             (*input) <= relu(*input);
-            (*input) << ',';
+            // (*input) << ',';
             break;
 
         case TANH:
-            std::cout << "~(tanh)~\n";
+            // std::cout << "~(tanh)~\n";
             (*input) <= tanh(*input);
-            (*input) << ',';
+            // (*input) << ',';
             break;
 
         case SOFTMAX:
-            std::cout << "~(softmax)~\n";
+            // std::cout << "~(softmax)~\n";
             (*input) <= softmax(*input);
-            (*input) << ',';
+            // (*input) << ',';
             break;
 
         default:
             break;
         }
-        std::cout << "----------------------------------------\n";
+        // std::cout << "----------------------------------------\n";
     }
 
     void backwards (matrix<double>* delta)
     {
-        std::cout << "BACKWARDS PROPAGATION\n";
-        *delta << ',';
+        // std::cout << "BACKWARDS PROPAGATION\n";
+        // *delta << ',';
 
         switch(activation)
         {
         case SIGMOID:
-            std::cout << "* sigmoid der\n";
+            // std::cout << "* sigmoid der\n";
             *delta <= (*delta)*sigmoid_der(*outputs);
-            *delta << ',';
+            // *delta << ',';
             break;
 
         case RELU:
-            std::cout << "* relU der\n";
+            // std::cout << "* relU der\n";
             *delta <= (*delta)*relu_der(*outputs);
-            *delta << ',';
+            // *delta << ',';
             break;
 
         case TANH:
-            std::cout << "* tanh der\n";
+            // std::cout << "* tanh der\n";
             *delta <= (*delta)*tanh_der(*outputs);
-            *delta << ',';
+            // *delta << ',';
             break;
 
         case SOFTMAX:
-            std::cout << "* softmax der\n";
+            // std::cout << "* softmax der\n";
             *delta <= (*delta)*softmax_der(*outputs);
-            *delta << ',';
+            // *delta << ',';
             break;
 
         default:
@@ -684,49 +692,57 @@ public:
         }
 
         (*errors) <= (*delta);
-        std::cout << "* Transpose\n";
-        *weights << ',';
+        // std::cout << "* Transpose\n";
+        // *weights << ',';
 
-        std::cout << "=\n";
+        // std::cout << "=\n";
 
         *delta >> (*delta)%(~(*weights));
 
-        *delta << ',';
+        // *delta << ',';
 
-        std::cout << "----------------------------------------\n";
+        // std::cout << "----------------------------------------\n";
     }
 
     void update (double learning_rate = 0.01)
     {
-        std::cout << "UPDATING PARAMETERS\n";
-        (*weights) << ',';
-        std::cout << "||||||\n";
-        (*weights) <= (*weights) - (((~(*inputs))%(*errors))*learning_rate);
-        (*weights) << ',';
-        std::cout << "\n";
-        (*biases) << ',';
-        std::cout << "-\n";
-        (*errors) << ',';
-        std::cout << "*" << learning_rate << '\n';
-        std::cout << "=\n";
-        (*biases) <= (*biases) - ((*errors)*learning_rate);
-        (*biases) << ',';
-        std::cout << "----------------------------------------\n";
+        // std::cout << "UPDATING PARAMETERS\n";
+        // (*weights) << ',';
+        // std::cout << "||||||\n";
+        (*weights) <= (*weights) - ((~(*inputs))%(*errors))*learning_rate/(double)batch_size;
+        // (*weights) << ',';
+        // std::cout << "\n";
+        // (*biases) << ',';
+        // std::cout << "-\n";
+        // (*errors) << ',';
+        // std::cout << "*" << learning_rate << '\n';
+        // std::cout << "=\n";
+        (*biases) <= (*biases) - (*errors)[0]*learning_rate/(double)batch_size;
+        // (*biases) << ',';
+        // std::cout << "----------------------------------------\n";
     }
 }
 layer_t;
 
 typedef class Network{
-    std::vector<std::vector<double>> samples;
-    std::vector<std::vector<double>> labels;
+    size_t input_size;
+    size_t output_size;
+    size_t split;
+    size_t batch_size;
+    std::vector<double> samples;
+    std::vector<double> labels;
     std::vector<layer_t*> layers;
 
 public:
-    Network (std::vector<std::vector<double>> s, std::vector<std::vector<double>> l)
+    Network (std::vector<double> s, std::vector<double> l, size_t ins, size_t outs, size_t sp)
     {
+        input_size = ins;
+        output_size = outs;
+        split = sp;
         samples = s;
         labels = l;
         layers = {};
+        batch_size = (size_t)(samples.size()/(split*input_size));
     }
 
     ~Network ()
@@ -739,7 +755,7 @@ public:
 
     void create (size_t in, size_t out, layerType_t lrt = DENSE, activation_t act = LINEAR)
     {
-        layer_t* lptr = new layer_t(in, out, lrt, act);
+        layer_t* lptr = new layer_t(in, out, lrt, act, batch_size);
         layers.push_back(lptr);
     }
 
@@ -747,18 +763,30 @@ public:
     {
         matrix<double>* loss;
         matrix<double>* propagator;
+        matrix<double>* evaluator;
         for(size_t i = 0; i < epochs; i++)
         {
+            double cost = 0;
             std::cout << "epoch: " << i << '\n';
-            for(size_t j = 0; j < samples.size(); j++)
+            for(size_t j = 0; j < split; j++)
             {
-                propagator = new matrix<double>(samples[j], 1, samples[j].size());
+
+                std::vector<double> sample_batch(   samples.begin() + input_size*batch_size*j*samples.size(),
+                                                    samples.begin() + input_size*batch_size*(j + 1)*samples.size());
+                propagator = new matrix<double>(sample_batch, batch_size, input_size);
+
                 for(size_t k = 0; k < layers.size(); k++)
                 {
                     layers[k]->forward(propagator);
                 }
-                loss = regression_loss(*propagator, labels[j]);
-                regression_error(propagator, labels[j]);
+
+                std::vector<double> label_batch(    labels.begin() + output_size*batch_size*j*labels.size(),
+                                                    labels.begin() + output_size*batch_size*(j + 1)*labels.size());
+                evaluator = new matrix<double>(label_batch, batch_size, output_size);
+
+                loss = regression_cost(*propagator, *evaluator, batch_size);
+                regression_error(propagator, *evaluator);
+
                 for(size_t k = 0; k < layers.size(); k++)
                 {
                     layers[layers.size() - k - 1]->backwards(propagator);
@@ -768,10 +796,10 @@ public:
                 {
                     layers[k]->update(learning_rate);
                 }
-                std::cout << "cost: " << &(*loss) << '\n';
-                std::cout << "=============================================\n=============================================\n";
+                cost += &(*loss);
                 delete loss;
             }
+            std::cout << "cost: " << cost << '\n';
         }
     }
 }
@@ -781,33 +809,33 @@ int main (int argc, char** argv)
 {
     network_t net(
         {
-            {1},
-            {2},
-            {3},
-            {4},
-            {5},
-            {6},
-            {7},
-            {8},
-            {9},
-            {10}
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
         },
         {
-            {5*1},
-            {5*2},
-            {5*3},
-            {5*4},
-            {5*5},
-            {5*6},
-            {5*7},
-            {5*8},
-            {5*9},
-            {5*10}
-        }
+            5*1,
+            5*2,
+            5*3,
+            5*4,
+            5*5,
+            5*6,
+            5*7,
+            5*8,
+            5*9,
+            5*10
+        },1, 1, 1
     );
-    net.create(1, 10, DENSE, TANH);
-    net.create(10, 1, DENSE, SIGMOID);
+    net.create(1, 1, DENSE, LINEAR);
+    // net.create(1, 1, DENSE, LINEAR);
 
-    net.train(100, 0.1);
+    net.train(100, 0.01);
     return 0;
 }
