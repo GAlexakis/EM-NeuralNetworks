@@ -8,11 +8,6 @@ private:
     T* ptr;
 
 public:
-    Tensor () {
-        dimensions = {};
-        ptr = new T{};
-    }
-
     Tensor (std::vector<size_t> dims) {
         size = 1;
         dimensions = dims;
@@ -47,7 +42,6 @@ public:
     }
 
     Tensor (const Tensor<T>& src) {
-        std::cout << "copy cosntructor\n";
         size = src.length();
         dimensions = src.dims();
         ptr = new T[size];
@@ -66,7 +60,6 @@ public:
     }
 
     Tensor (Tensor<T>&& src) {
-        std::cout << "move cosntructor\n";
         size = src.length();
         dimensions = src.dims();
         ptr = &src;
@@ -106,6 +99,14 @@ public:
             std::cout << ptr[index];
         }
         std::cout << '\n';
+    }
+
+    std::vector<T> vec () {
+        std::vector<T> result(size);
+        for(size_t i = 0; i < size; i++) {
+            result[i] = ptr[i];
+        }
+        return result;
     }
 
     ~Tensor () {
@@ -167,16 +168,34 @@ public:
         return ptr[index];
     }
 
-    size_t operator[] (size_t dimension) const {
+    Tensor<T> operator[] (size_t dimension) const {
         if (dimension >= dimensions.size() || dimension < 0) {
             std::cerr << "\x1B[31mERROR: OUT OF DIMENSION BOUNDS\033[0m\n";
             exit(1);
         }
-        return dimensions[dimension];
+        std::vector<size_t> new_dims = dimensions;
+        new_dims[dimension] = 1;
+        Tensor<T> result = Tensor<T>(new_dims);
+        std::vector<size_t> indices1 = std::vector<size_t>(result.dims().size());
+        for (size_t i = 0; i < result.length(); i++) {
+            size_t divider = result.length()/result.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%result.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : result.dims()[j + 1];
+            }
+            result(indices1) = 0;
+            for (size_t j = 0; j < dimensions[dimension]; j++) {
+                std::vector<size_t> indices2 = indices1;
+                indices2[dimension] = j;
+                result(indices1) += (*this)(indices2);
+            }
+        }
+        return result;
     }
 
     void operator= (const Tensor<T>& src) {
-        std::cout << "copy assignment\n";
         size = src.length();
         dimensions = src.dims();
         delete[] ptr;
@@ -195,13 +214,47 @@ public:
     }
 
     void operator= (Tensor<T>&& src) {
-        std::cout << "move assignment\n";
         size = src.length();
         dimensions = src.dims();
         ptr = &src;
         src.del();
     }
 };
+
+//
+// ADDITION
+//
+template <class T> Tensor<T> operator+ (const Tensor<T>& t1, T a) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = t1(indices1) + a;
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator+ (T a, const Tensor<T>& t1) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = a + t1(indices1);
+    }
+    return result;
+}
 
 template <class T> Tensor<T> operator+ (const Tensor<T>& t1, const Tensor<T>& t2) {
     bool first = true;
@@ -291,17 +344,514 @@ template <class T> Tensor<T> operator+ (const Tensor<T>& t1, const Tensor<T>& t2
     }
     return result;
 }
+//
+// SUBSTRACTION
+//
+template <class T> Tensor<T> operator- (const Tensor<T>& t1, T a) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = t1(indices1) - a;
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator- (T a, const Tensor<T>& t1) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = a - t1(indices1);
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator- (const Tensor<T>& t1, const Tensor<T>& t2) {
+    bool first = true;
+    int diff;
+    if (t1.length() > t2.length()) {
+        first = true;
+        diff = t1.dims().size() - t2.dims().size();
+        for (size_t i = 0; i < t2.dims().size(); i++) {
+            if (t1.dims()[i + diff] % t2.dims()[i] != 0) {
+                std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                exit(1);
+            }
+        }
+    }
+    else if (t1.length() < t2.length()) {
+        first = false;
+        diff = t2.dims().size() - t1.dims().size();
+        for (size_t i = 0; i < t1.dims().size(); i++) {
+            if (t2.dims()[i + diff] % t1.dims()[i] != 0) {
+                std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                exit(1);
+            }
+        }
+    }
+    else {
+        diff = 0;
+        bool found = false;
+        for (size_t i = 0; i < t1.dims().size(); i++) {
+            if (!found) {
+                if (t1.dims()[i] > t2.dims()[i]) {
+                    found = true;
+                    first = true;
+                    i--;
+                }
+                else if (t1.dims()[i] < t2.dims()[i]) {
+                    found = true;
+                    first = false;
+                    i--;
+                }
+            }
+            else if (first) {
+                if (t1.dims()[i] % t2.dims()[i] != 0) {
+                    std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                    exit(1);
+                }
+            }
+            else {
+                if (t2.dims()[i] % t1.dims()[i] != 0) {
+                    std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                    exit(1);
+                }
+            }
+        }
+    }
+    Tensor<T> result =  first ? Tensor<T>(t1.dims()) : Tensor<T>(t2.dims());
+    std::vector<size_t> indices1 = first ? std::vector<size_t>(t1.dims().size()) : std::vector<size_t>(t2.dims().size());
+    std::vector<size_t> indices2 = first ? std::vector<size_t>(t2.dims().size()) : std::vector<size_t>(t1.dims().size());
+    if (first) {
+        for (size_t i = 0; i < t1.length(); i++) {
+            size_t divider = t1.length()/t1.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%t1.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+            }
+            for (size_t j = 0; j < indices2.size(); j++) {
+                indices2[j] = indices1[j + diff]%t2.dims()[j];
+            }
+            result(indices1) = t1(indices1) - t2(indices2);
+        }
+    }
+    else {
+        for (size_t i = 0; i < t2.length(); i++) {
+            size_t divider = t2.length()/t2.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%t2.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : t2.dims()[j + 1];
+            }
+            for (size_t j = 0; j < indices2.size(); j++) {
+                indices2[j] = indices1[j + diff]%t1.dims()[j];
+            }
+            result(indices1) = t1(indices2) - t2(indices1);
+        }
+    }
+    return result;
+}
+//
+// MULTIPLICATION
+//
+template <class T> Tensor<T> operator* (const Tensor<T>& t1, T a) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = t1(indices1) * a;
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator* (T a, const Tensor<T>& t1) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = a * t1(indices1);
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator* (const Tensor<T>& t1, const Tensor<T>& t2) {
+    bool first = true;
+    int diff;
+    if (t1.length() > t2.length()) {
+        first = true;
+        diff = t1.dims().size() - t2.dims().size();
+        for (size_t i = 0; i < t2.dims().size(); i++) {
+            if (t1.dims()[i + diff] % t2.dims()[i] != 0) {
+                std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                exit(1);
+            }
+        }
+    }
+    else if (t1.length() < t2.length()) {
+        first = false;
+        diff = t2.dims().size() - t1.dims().size();
+        for (size_t i = 0; i < t1.dims().size(); i++) {
+            if (t2.dims()[i + diff] % t1.dims()[i] != 0) {
+                std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                exit(1);
+            }
+        }
+    }
+    else {
+        diff = 0;
+        bool found = false;
+        for (size_t i = 0; i < t1.dims().size(); i++) {
+            if (!found) {
+                if (t1.dims()[i] > t2.dims()[i]) {
+                    found = true;
+                    first = true;
+                    i--;
+                }
+                else if (t1.dims()[i] < t2.dims()[i]) {
+                    found = true;
+                    first = false;
+                    i--;
+                }
+            }
+            else if (first) {
+                if (t1.dims()[i] % t2.dims()[i] != 0) {
+                    std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                    exit(1);
+                }
+            }
+            else {
+                if (t2.dims()[i] % t1.dims()[i] != 0) {
+                    std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                    exit(1);
+                }
+            }
+        }
+    }
+    Tensor<T> result =  first ? Tensor<T>(t1.dims()) : Tensor<T>(t2.dims());
+    std::vector<size_t> indices1 = first ? std::vector<size_t>(t1.dims().size()) : std::vector<size_t>(t2.dims().size());
+    std::vector<size_t> indices2 = first ? std::vector<size_t>(t2.dims().size()) : std::vector<size_t>(t1.dims().size());
+    if (first) {
+        for (size_t i = 0; i < t1.length(); i++) {
+            size_t divider = t1.length()/t1.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%t1.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+            }
+            for (size_t j = 0; j < indices2.size(); j++) {
+                indices2[j] = indices1[j + diff]%t2.dims()[j];
+            }
+            result(indices1) = t1(indices1) * t2(indices2);
+        }
+    }
+    else {
+        for (size_t i = 0; i < t2.length(); i++) {
+            size_t divider = t2.length()/t2.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%t2.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : t2.dims()[j + 1];
+            }
+            for (size_t j = 0; j < indices2.size(); j++) {
+                indices2[j] = indices1[j + diff]%t1.dims()[j];
+            }
+            result(indices1) = t1(indices2) * t2(indices1);
+        }
+    }
+    return result;
+}
+//
+// DIVISION
+//
+template <class T> Tensor<T> operator/ (const Tensor<T>& t1, T a) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = t1(indices1) / a;
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator/ (T a, const Tensor<T>& t1) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = a / t1(indices1);
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator/ (const Tensor<T>& t1, const Tensor<T>& t2) {
+    bool first = true;
+    int diff;
+    if (t1.length() > t2.length()) {
+        first = true;
+        diff = t1.dims().size() - t2.dims().size();
+        for (size_t i = 0; i < t2.dims().size(); i++) {
+            if (t1.dims()[i + diff] % t2.dims()[i] != 0) {
+                std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                exit(1);
+            }
+        }
+    }
+    else if (t1.length() < t2.length()) {
+        first = false;
+        diff = t2.dims().size() - t1.dims().size();
+        for (size_t i = 0; i < t1.dims().size(); i++) {
+            if (t2.dims()[i + diff] % t1.dims()[i] != 0) {
+                std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                exit(1);
+            }
+        }
+    }
+    else {
+        diff = 0;
+        bool found = false;
+        for (size_t i = 0; i < t1.dims().size(); i++) {
+            if (!found) {
+                if (t1.dims()[i] > t2.dims()[i]) {
+                    found = true;
+                    first = true;
+                    i--;
+                }
+                else if (t1.dims()[i] < t2.dims()[i]) {
+                    found = true;
+                    first = false;
+                    i--;
+                }
+            }
+            else if (first) {
+                if (t1.dims()[i] % t2.dims()[i] != 0) {
+                    std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                    exit(1);
+                }
+            }
+            else {
+                if (t2.dims()[i] % t1.dims()[i] != 0) {
+                    std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                    exit(1);
+                }
+            }
+        }
+    }
+    Tensor<T> result =  first ? Tensor<T>(t1.dims()) : Tensor<T>(t2.dims());
+    std::vector<size_t> indices1 = first ? std::vector<size_t>(t1.dims().size()) : std::vector<size_t>(t2.dims().size());
+    std::vector<size_t> indices2 = first ? std::vector<size_t>(t2.dims().size()) : std::vector<size_t>(t1.dims().size());
+    if (first) {
+        for (size_t i = 0; i < t1.length(); i++) {
+            size_t divider = t1.length()/t1.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%t1.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+            }
+            for (size_t j = 0; j < indices2.size(); j++) {
+                indices2[j] = indices1[j + diff]%t2.dims()[j];
+            }
+            result(indices1) = t1(indices1) / t2(indices2);
+        }
+    }
+    else {
+        for (size_t i = 0; i < t2.length(); i++) {
+            size_t divider = t2.length()/t2.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%t2.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : t2.dims()[j + 1];
+            }
+            for (size_t j = 0; j < indices2.size(); j++) {
+                indices2[j] = indices1[j + diff]%t1.dims()[j];
+            }
+            result(indices1) = t1(indices2) / t2(indices1);
+        }
+    }
+    return result;
+}
+
+//
+// MODULO
+//
+template <class T> Tensor<T> operator% (const Tensor<T>& t1, T a) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = t1(indices1) % a;
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator% (T a, const Tensor<T>& t1) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = a % t1(indices1);
+    }
+    return result;
+}
+
+template <class T> Tensor<T> operator% (const Tensor<T>& t1, const Tensor<T>& t2) {
+    bool first = true;
+    int diff;
+    if (t1.length() > t2.length()) {
+        first = true;
+        diff = t1.dims().size() - t2.dims().size();
+        for (size_t i = 0; i < t2.dims().size(); i++) {
+            if (t1.dims()[i + diff] % t2.dims()[i] != 0) {
+                std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                exit(1);
+            }
+        }
+    }
+    else if (t1.length() < t2.length()) {
+        first = false;
+        diff = t2.dims().size() - t1.dims().size();
+        for (size_t i = 0; i < t1.dims().size(); i++) {
+            if (t2.dims()[i + diff] % t1.dims()[i] != 0) {
+                std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                exit(1);
+            }
+        }
+    }
+    else {
+        diff = 0;
+        bool found = false;
+        for (size_t i = 0; i < t1.dims().size(); i++) {
+            if (!found) {
+                if (t1.dims()[i] > t2.dims()[i]) {
+                    found = true;
+                    first = true;
+                    i--;
+                }
+                else if (t1.dims()[i] < t2.dims()[i]) {
+                    found = true;
+                    first = false;
+                    i--;
+                }
+            }
+            else if (first) {
+                if (t1.dims()[i] % t2.dims()[i] != 0) {
+                    std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                    exit(1);
+                }
+            }
+            else {
+                if (t2.dims()[i] % t1.dims()[i] != 0) {
+                    std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
+                    exit(1);
+                }
+            }
+        }
+    }
+    Tensor<T> result =  first ? Tensor<T>(t1.dims()) : Tensor<T>(t2.dims());
+    std::vector<size_t> indices1 = first ? std::vector<size_t>(t1.dims().size()) : std::vector<size_t>(t2.dims().size());
+    std::vector<size_t> indices2 = first ? std::vector<size_t>(t2.dims().size()) : std::vector<size_t>(t1.dims().size());
+    if (first) {
+        for (size_t i = 0; i < t1.length(); i++) {
+            size_t divider = t1.length()/t1.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%t1.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+            }
+            for (size_t j = 0; j < indices2.size(); j++) {
+                indices2[j] = indices1[j + diff]%t2.dims()[j];
+            }
+            result(indices1) = t1(indices1) % t2(indices2);
+        }
+    }
+    else {
+        for (size_t i = 0; i < t2.length(); i++) {
+            size_t divider = t2.length()/t2.dims()[0];
+            size_t index = 0;
+            for (size_t j = 0; j < indices1.size(); j++) {
+                indices1[j] = (i/divider)%t2.dims()[j];
+                index += divider*indices1[j];
+                divider /= j == indices1.size() - 1 ? 1 : t2.dims()[j + 1];
+            }
+            for (size_t j = 0; j < indices2.size(); j++) {
+                indices2[j] = indices1[j + diff]%t1.dims()[j];
+            }
+            result(indices1) = t1(indices2) % t2(indices1);
+        }
+    }
+    return result;
+}
 
 int main(int argc, char** argv) {
-    std::vector<int> values1 = {1,2,3,4};
-    std::vector<int> values2 = {1,2,3,4,5,6,7,8};
-    std::vector<size_t> dims1 = {2,2,1};
-    std::vector<size_t> dims2 = {2,2,2};
+    std::vector<int> values1 = {1,2,3,4,5,6,7,8};
+    std::vector<size_t> dims1 = {2,2,2};
     Tensor<int> t1(values1, dims1);
-    Tensor<int> t2(values2, dims2);
-    Tensor<int> t3 = t1 + t2;
+
 
     t1.print();
-    t2.print();
-    t3.print();
+    t1[0].print();
+    t1[1].print();
+    t1[2].print();
+    t1[0][1].print();
+    t1[0][2].print();
+    t1[1][2].print();
+    t1[0][1][2].print();
+
+
 }
