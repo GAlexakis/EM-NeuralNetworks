@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <cmath>
 
 template<class T> class Tensor {
 private:
@@ -219,6 +220,23 @@ public:
         ptr = &src;
         src.del();
     }
+
+    Tensor<T> operator~ () {
+        std::vector<size_t> dimen = dimensions.size() == 1 ? std::vector<size_t>{size, 1} : std::vector<size_t>{dimensions[1], dimensions[0]};
+        Tensor<T> result =  dimensions.size() == 1 ? Tensor<T>(vec(), dimen) : Tensor<T>(dimen);
+        if (dimensions.size() > 2) {
+            std::cerr << "\x1B[31mERROR: TRABSPOSE NOT SUPPORTED\033[0m\n";
+            exit(1);
+        }
+        else if (dimensions.size() == 2) {
+            for (size_t i = 0; i < dimensions[1]; i++) {
+                for (size_t j = 0; j < dimensions[0]; j++) result(i, j) = (*this)(j ,i);
+            }
+        }
+        return result;
+    }
+
+
 };
 
 //
@@ -837,21 +855,344 @@ template <class T> Tensor<T> operator% (const Tensor<T>& t1, const Tensor<T>& t2
     }
     return result;
 }
+//
+// MATRIX MULTIPLICATION
+//
+template <class T> Tensor<T> mul (const Tensor<T>& t1, const Tensor<T>& t2) {
+    if (t1.dims().size() != 2 || t2.dims().size() != 2) {
+        std::cerr << "\x1B[31mERROR: MATRIX MULTIPLICATION NOT SUPPORTED\033[0m\n";
+        exit(1);
+    }
+    if (t1.dims()[1] != t2.dims()[0]) {
+        std::cerr << "\x1B[31mERROR: MATRIX MULTIPLICATION FAILED\033[0m\n";
+        exit(1);
+    }
+    std::vector dimen = {t1.dims()[0], t2.dims()[1]};
+    Tensor<T> result(dimen);
+    for(size_t i = 0; i < result.dims()[0]; i++)
+    {
+        for(size_t j = 0; j < result.dims()[1]; j++)
+        {
+            result(i, j) = 0;
+            for(size_t k = 0; k < t1.dims()[1]; k++)
+            {
+                result(i, j) += t1(i, k)*t2(k, j);
+            }
+        }
+    }
+    return result;
+}
+//
+// TRIGONOMETRIC FUNCTIONS
+//
+template <class T> Tensor<T> cos (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = cos(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> sin (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = sin(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> tan (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = tan(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> acos (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = acos(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> asin (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = asin(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> atan (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = atan(t1(indices1));
+    }
+    return result;
+}
+//
+// HYPERBOLIC FUNCTIONS
+//
+template <class T> Tensor<T> cosh (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = cosh(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> sinh (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = sinh(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> tanh (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = tanh(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> acosh (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = acosh(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> asinh (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = asinh(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> atanh (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = atanh(t1(indices1));
+    }
+    return result;
+}
+//
+// EXPONENTIAL FUNCTIONS
+//
+template <class T> Tensor<T> exp (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = exp(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> exp2 (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = exp2(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> expm1 (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = expm1(t1(indices1));
+    }
+    return result;
+}
+//
+// LOGARITHMIC FUNCTIONS
+//
+template <class T> Tensor<T> log (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = log(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> log10 (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = log10(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> log2 (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = log2(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> log1p (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = log1p(t1(indices1));
+    }
+    return result;
+}
 
 int main(int argc, char** argv) {
-    std::vector<int> values1 = {1,2,3,4,5,6,7,8};
-    std::vector<size_t> dims1 = {2,2,2};
-    Tensor<int> t1(values1, dims1);
+    std::vector<float> values1 = {1,2,3,4,5,6,7,8};
+    std::vector<size_t> dims1 = {2,4};
+    Tensor<float> t1(values1, dims1);
 
 
     t1.print();
-    t1[0].print();
-    t1[1].print();
-    t1[2].print();
-    t1[0][1].print();
-    t1[0][2].print();
-    t1[1][2].print();
-    t1[0][1][2].print();
+
+    log(t1).print();
+    log2(t1).print();
+    log10(t1).print();
+    log1p(t1).print();
+
 
 
 }

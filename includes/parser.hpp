@@ -6,13 +6,19 @@
 #include <vector>
 #include <unordered_map>
 
-template <class T> std::unordered_map<std::string, std::vector<T>> parse_csv (std::string filepath, size_t features) {
+template <class T> std::unordered_map<std::string, std::vector<T>> parse_csv (std::string filepath) {
     std::unordered_map<std::string, std::vector<float>> data, tempData;
     std::ifstream file;
     T temp;
     std::string key;
+    size_t features = 0;
+    std::string count_string;
     file.open(filepath);
-    for (size_t i = 0; i < features - 1; i++) {
+    std::getline(file, count_string);
+    file.close();
+    for (const auto i : count_string) features += i == ',' ? 1 : 0;
+    file.open(filepath);
+    for (size_t i = 0; i < features; i++) {
         std::getline(file, key, ',');
         tempData.insert({key, {}});
     }
