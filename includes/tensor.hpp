@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -12,6 +14,15 @@ public:
     Tensor (std::vector<size_t> dims) {
         size = 1;
         dimensions = dims;
+        for (const size_t& dimension : dimensions) {
+            size *= dimension;
+        }
+        ptr = new T[size]{};
+    }
+
+    template <class... Args> Tensor (Args ...args) {
+        size = 1;
+        dimensions = {args...};
         for (const size_t& dimension : dimensions) {
             size *= dimension;
         }
@@ -989,7 +1000,7 @@ template <class T> Tensor<T> cosh (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = cosh(t1(indices1));
+        result(indices1) = std::cosh(t1(indices1));
     }
     return result;
 }
@@ -1004,7 +1015,7 @@ template <class T> Tensor<T> sinh (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = sinh(t1(indices1));
+        result(indices1) = std::sinh(t1(indices1));
     }
     return result;
 }
@@ -1019,7 +1030,7 @@ template <class T> Tensor<T> tanh (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = tanh(t1(indices1));
+        result(indices1) = std::tanh(t1(indices1));
     }
     return result;
 }
@@ -1034,7 +1045,7 @@ template <class T> Tensor<T> acosh (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = acosh(t1(indices1));
+        result(indices1) = std::acosh(t1(indices1));
     }
     return result;
 }
@@ -1049,7 +1060,7 @@ template <class T> Tensor<T> asinh (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = asinh(t1(indices1));
+        result(indices1) = std::asinh(t1(indices1));
     }
     return result;
 }
@@ -1064,7 +1075,7 @@ template <class T> Tensor<T> atanh (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = atanh(t1(indices1));
+        result(indices1) = std::atanh(t1(indices1));
     }
     return result;
 }
@@ -1082,7 +1093,7 @@ template <class T> Tensor<T> exp (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = exp(t1(indices1));
+        result(indices1) = std::exp(t1(indices1));
     }
     return result;
 }
@@ -1097,7 +1108,7 @@ template <class T> Tensor<T> exp2 (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = exp2(t1(indices1));
+        result(indices1) = std::exp2(t1(indices1));
     }
     return result;
 }
@@ -1112,7 +1123,7 @@ template <class T> Tensor<T> expm1 (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = expm1(t1(indices1));
+        result(indices1) = std::expm1(t1(indices1));
     }
     return result;
 }
@@ -1130,7 +1141,7 @@ template <class T> Tensor<T> log (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = log(t1(indices1));
+        result(indices1) = std::log(t1(indices1));
     }
     return result;
 }
@@ -1145,7 +1156,7 @@ template <class T> Tensor<T> log10 (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = log10(t1(indices1));
+        result(indices1) = std::log10(t1(indices1));
     }
     return result;
 }
@@ -1160,7 +1171,7 @@ template <class T> Tensor<T> log2 (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = log2(t1(indices1));
+        result(indices1) = std::log2(t1(indices1));
     }
     return result;
 }
@@ -1175,24 +1186,151 @@ template <class T> Tensor<T> log1p (const Tensor<T>& t1) {
             index += divider*indices1[j];
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
-        result(indices1) = log1p(t1(indices1));
+        result(indices1) = std::log1p(t1(indices1));
     }
     return result;
 }
-
-int main(int argc, char** argv) {
-    std::vector<float> values1 = {1,2,3,4,5,6,7,8};
-    std::vector<size_t> dims1 = {2,4};
-    Tensor<float> t1(values1, dims1);
-
-
-    t1.print();
-
-    log(t1).print();
-    log2(t1).print();
-    log10(t1).print();
-    log1p(t1).print();
-
-
-
+//
+// ROOT FUNCTIONS
+//
+template <class T> Tensor<T> sqrt (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::sqrt(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> cbrt (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::cbrt(t1(indices1));
+    }
+    return result;
+}
+//
+// ROUNDING FUNCTIONS
+//
+template <class T> Tensor<T> ceil (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::ceil(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> floor (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::floor(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> round (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::round(t1(indices1));
+    }
+    return result;
+}
+template <class T> Tensor<T> trunc (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::trunc(t1(indices1));
+    }
+    return result;
+}
+//
+// OTHER FUNCTIONS
+//
+template <class T, class T1> Tensor<T> min (const Tensor<T>& t1, T1 a) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::fmin(t1(indices1), a);
+    }
+    return result;
+}
+template <class T, class T1> Tensor<T> max (const Tensor<T>& t1, T1 a) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::fmax(t1(indices1), a);
+    }
+    return result;
+}
+template <class T> Tensor<T> abs (const Tensor<T>& t1) {
+    Tensor<T> result(t1.dims());
+    std::vector<size_t> indices1(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = std::abs(t1(indices1));
+    }
+    return result;
 }
