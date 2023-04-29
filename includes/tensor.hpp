@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <limits>
 
 template<class T> class Tensor {
 private:
@@ -250,10 +251,26 @@ public:
 
 };
 
+template <class T, class T1> Tensor<T> operator> (const Tensor<T>& t1, T1 a) {
+    Tensor<T> result = Tensor<T>(t1.dims());
+    std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
+    for (size_t i = 0; i < t1.length(); i++) {
+        size_t divider = t1.length()/t1.dims()[0];
+        size_t index = 0;
+        for (size_t j = 0; j < indices1.size(); j++) {
+            indices1[j] = (i/divider)%t1.dims()[j];
+            index += divider*indices1[j];
+            divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
+        }
+        result(indices1) = t1(indices1) > a ? 1 : 0;
+    }
+    return result;
+}
+
 //
 // ADDITION
 //
-template <class T> Tensor<T> operator+ (const Tensor<T>& t1, T a) {
+template <class T, class T1> Tensor<T> operator+ (const Tensor<T>& t1, T1 a) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -269,7 +286,7 @@ template <class T> Tensor<T> operator+ (const Tensor<T>& t1, T a) {
     return result;
 }
 
-template <class T> Tensor<T> operator+ (T a, const Tensor<T>& t1) {
+template <class T, class T1> Tensor<T> operator+ (T1 a, const Tensor<T>& t1) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -376,7 +393,7 @@ template <class T> Tensor<T> operator+ (const Tensor<T>& t1, const Tensor<T>& t2
 //
 // SUBSTRACTION
 //
-template <class T> Tensor<T> operator- (const Tensor<T>& t1, T a) {
+template <class T, class T1> Tensor<T> operator- (const Tensor<T>& t1, T1 a) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -392,7 +409,7 @@ template <class T> Tensor<T> operator- (const Tensor<T>& t1, T a) {
     return result;
 }
 
-template <class T> Tensor<T> operator- (T a, const Tensor<T>& t1) {
+template <class T, class T1> Tensor<T> operator- (T1 a, const Tensor<T>& t1) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -407,6 +424,10 @@ template <class T> Tensor<T> operator- (T a, const Tensor<T>& t1) {
     }
     return result;
 }
+
+ template <class T> Tensor<T> operator- (const Tensor<T>& t1) {
+        return (T)0 - t1;
+    }
 
 template <class T> Tensor<T> operator- (const Tensor<T>& t1, const Tensor<T>& t2) {
     bool first = true;
@@ -499,7 +520,7 @@ template <class T> Tensor<T> operator- (const Tensor<T>& t1, const Tensor<T>& t2
 //
 // MULTIPLICATION
 //
-template <class T> Tensor<T> operator* (const Tensor<T>& t1, T a) {
+template <class T, class T1> Tensor<T> operator* (const Tensor<T>& t1, T1 a) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -515,7 +536,7 @@ template <class T> Tensor<T> operator* (const Tensor<T>& t1, T a) {
     return result;
 }
 
-template <class T> Tensor<T> operator* (T a, const Tensor<T>& t1) {
+template <class T, class T1> Tensor<T> operator* (T1 a, const Tensor<T>& t1) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -622,7 +643,7 @@ template <class T> Tensor<T> operator* (const Tensor<T>& t1, const Tensor<T>& t2
 //
 // DIVISION
 //
-template <class T> Tensor<T> operator/ (const Tensor<T>& t1, T a) {
+template <class T, class T1> Tensor<T> operator/ (const Tensor<T>& t1, T1 a) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -638,7 +659,7 @@ template <class T> Tensor<T> operator/ (const Tensor<T>& t1, T a) {
     return result;
 }
 
-template <class T> Tensor<T> operator/ (T a, const Tensor<T>& t1) {
+template <class T, class T1> Tensor<T> operator/ (T1 a, const Tensor<T>& t1) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -746,7 +767,7 @@ template <class T> Tensor<T> operator/ (const Tensor<T>& t1, const Tensor<T>& t2
 //
 // MODULO
 //
-template <class T> Tensor<T> operator% (const Tensor<T>& t1, T a) {
+template <class T, class T1> Tensor<T> operator% (const Tensor<T>& t1, T1 a) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -762,7 +783,7 @@ template <class T> Tensor<T> operator% (const Tensor<T>& t1, T a) {
     return result;
 }
 
-template <class T> Tensor<T> operator% (T a, const Tensor<T>& t1) {
+template <class T, class T1> Tensor<T> operator% (T1 a, const Tensor<T>& t1) {
     Tensor<T> result = Tensor<T>(t1.dims());
     std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
     for (size_t i = 0; i < t1.length(); i++) {
@@ -1142,6 +1163,7 @@ template <class T> Tensor<T> log (const Tensor<T>& t1) {
             divider /= j == indices1.size() - 1 ? 1 : t1.dims()[j + 1];
         }
         result(indices1) = std::log(t1(indices1));
+        if (std::isinf(result(indices1)))result(indices1) = -std::numeric_limits<double>::max();
     }
     return result;
 }

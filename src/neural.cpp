@@ -35,12 +35,8 @@ void Dense::predict (Tensor<double>* propagator) {
     *propagator = mul(*propagator, *weights) + *biases;
 }
 void Dense::fix (double learning_rate) {
-    weights->print();
-    biases->print();
     *weights = *weights - mul(~(*inputs), *errors)*learning_rate/(double)errors->dims()[0];
     *biases = *biases - (*errors)[0]*learning_rate/(double)errors->dims()[0];
-    weights->print();
-    biases->print();
 }
 
 Activation::Activation (size_t input_size, size_t batch_size, std::function<void(Tensor<double>*)> func, std::function<void(Tensor<double>*)> der) {
@@ -81,7 +77,7 @@ void Network::forward (Tensor<double>* propagator) {
     for (auto layer : layers) layer->forward(propagator);
 }
 void Network::backwards (Tensor<double>* propagator) {
-    for(size_t i = 0; i < layers.size(); i++)
+    for(size_t i = 1; i < layers.size(); i++)
         layers[layers.size() - i - 1]->backwards(propagator);
 }
 void Network::predict (Tensor<double>* propagator) {
@@ -89,4 +85,59 @@ void Network::predict (Tensor<double>* propagator) {
 }
 void Network::fix (double learning_rate) {
     for (auto layer : layers) layer->fix(learning_rate);
+}
+
+void act::sigmoid (Tensor<double>* t) {
+    *t = 1/(1 + exp(-(*t)));
+}
+void act::tanh (Tensor<double>* t) {
+    *t = tanh(*t);
+}
+void act::relu (Tensor<double>* t) {
+    *t = max(*t, 0);
+}
+void act::softmax (Tensor<double>* t) {
+    Tensor<double> sums = exp(*t)[1];
+    *t = exp(*t)/sums;
+}
+void act::linear (Tensor<double>* t) {
+
+}
+void der::sigmoid (Tensor<double>* t) {
+    *t = exp(-(*t))/((1 + exp(-(*t)))*(1 + exp(-(*t))));
+}
+void der::tanh (Tensor<double>* t) {
+    *t = 1 - tanh(*t)*tanh(*t);
+}
+void der::relu (Tensor<double>* t) {
+    *t = (*t > 0);
+}
+void der::softmax (Tensor<double>* t) {
+
+}
+void der::linear (Tensor<double>* t) {
+
+}
+double err::regression (Tensor<double>* p, const Tensor<double> e) {
+    *p = *p - e;
+    double cost = (abs(*p)[0][1]/(double)(p->dims()[0])).vec()[0];
+    return cost;
+}
+double err::binary (Tensor<double>* p, const Tensor<double> e) {
+    Tensor<double> loss = -(e*log(*p) + ((double)1 - e)*log((double)1 - *p));
+    *p = *p - e;
+    double cost = (loss[0]/(double)(loss.length())).vec()[0];
+    return cost;
+}
+double err::categorical (Tensor<double>* p, const Tensor<double> e) {
+    Tensor<double> loss = (-e*log(*p))[1];
+    *p = *p - e;
+    double cost = (loss[0]/(double)(loss.length())).vec()[0];
+    return cost;
+}
+double err::multyclass (Tensor<double>* p, const Tensor<double> e) {
+    Tensor<double> loss = (-(e*log(*p) + ((double)1 - e)*log((double)1 - *p)))[1];
+    *p = *p - e;
+    double cost = (loss[0]/(double)(loss.length())).vec()[0];
+    return cost;
 }

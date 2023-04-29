@@ -26,7 +26,7 @@ public:
     void fix (double learning_rate) override;
 };
 
-class Activation : public Layer{
+class Activation : public Layer {
 private:
     Tensor<double>* inputs;
     std::function<void(Tensor<double>*)> func;
@@ -40,7 +40,7 @@ public:
     void fix (double learning_rate) override;
 };
 
-class Network : public Layer{
+class Network : public Layer {
 private:
     std::vector<Layer*> layers;
 public:
@@ -52,3 +52,26 @@ public:
     void predict (Tensor<double>* propagator) override;
     void fix (double learning_rate) override;
 };
+
+namespace act {
+    void sigmoid (Tensor<double>* t);
+    void tanh (Tensor<double>* t);
+    void relu (Tensor<double>* t);
+    void softmax (Tensor<double>* t);
+    void linear (Tensor<double>* t);
+}
+
+namespace der {
+    void sigmoid (Tensor<double>* t);
+    void tanh (Tensor<double>* t);
+    void relu (Tensor<double>* t);
+    void softmax (Tensor<double>* t);
+    void linear (Tensor<double>* t);
+}
+
+namespace err {
+    double regression (Tensor<double>* p, const Tensor<double> e);
+    double binary (Tensor<double>* p, const Tensor<double> e);
+    double categorical (Tensor<double>* p, const Tensor<double> e);
+    double multyclass (Tensor<double>* p, const Tensor<double> e);
+}
