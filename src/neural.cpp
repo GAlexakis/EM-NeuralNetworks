@@ -203,7 +203,10 @@ void Model::train (const std::unordered_map<std::string, std::vector<double>>& d
     }
 }
 void Model::predict (const std::vector<double>& input_values) {
-
+    Tensor<double>* predictor = new Tensor<double>(input_values, {1,input_values.size()});
+    network->predict(predictor);
+    predictor->print();
+    delete predictor;
 }
 
 void act::sigmoid (Tensor<double>* t) {
