@@ -7,7 +7,7 @@
 #include <unordered_map>
 
 template <class T> std::unordered_map<std::string, std::vector<T>> parse_csv (std::string filepath) {
-    std::unordered_map<std::string, std::vector<float>> data, tempData;
+    std::unordered_map<std::string, std::vector<T>> data, tempData;
     std::ifstream file;
     T temp;
     std::string key;

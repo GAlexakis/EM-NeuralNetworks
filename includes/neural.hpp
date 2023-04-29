@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <functional>
 
 class Layer {
@@ -53,6 +54,23 @@ public:
     void fix (double learning_rate) override;
 };
 
+class Model {
+private:
+    Layer* network;
+    size_t epochs;
+    size_t iterations;
+    size_t batch_size;
+    double learning_rate;
+    double validation_split;
+    std::function<double(Tensor<double>*, const Tensor<double>&)> error_func;
+public:
+    Model (Layer* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func);
+    ~Model ();
+    void params (size_t epochs, size_t iterations, size_t batch_size, double learning_rate, double validation_split);
+    void train (const std::unordered_map<std::string, std::vector<double>>& data, const std::vector<std::string>& output_keys);
+    void predict (const std::vector<double>& input_values);
+};
+
 namespace act {
     void sigmoid (Tensor<double>* t);
     void tanh (Tensor<double>* t);
@@ -70,8 +88,8 @@ namespace der {
 }
 
 namespace err {
-    double regression (Tensor<double>* p, const Tensor<double> e);
-    double binary (Tensor<double>* p, const Tensor<double> e);
-    double categorical (Tensor<double>* p, const Tensor<double> e);
-    double multyclass (Tensor<double>* p, const Tensor<double> e);
+    double regression (Tensor<double>* p, const Tensor<double>& e);
+    double binary (Tensor<double>* p, const Tensor<double>& e);
+    double categorical (Tensor<double>* p, const Tensor<double>& e);
+    double multyclass (Tensor<double>* p, const Tensor<double>& e);
 }
