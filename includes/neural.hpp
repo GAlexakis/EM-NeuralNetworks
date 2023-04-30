@@ -3,6 +3,17 @@
 #include <string>
 #include <functional>
 
+enum class LAYER {
+    DENSE
+};
+enum class ACTIVATION {
+    LINEAR,
+    SIGMOID,
+    TANH,
+    RELU,
+    SOFTMAX
+};
+
 class Layer {
 public:
     virtual ~Layer () {}
@@ -56,19 +67,22 @@ public:
 
 class Model {
 private:
-    Layer* network;
+    Network* network;
     size_t epochs;
     size_t iterations;
     size_t batch_size;
+    size_t last_size;
     double learning_rate;
     double validation_split;
     std::function<double(Tensor<double>*, const Tensor<double>&)> error_func;
 public:
-    Model (Layer* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func);
+    Model (Network* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t batch_size);
+    Model (std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t batch_size, size_t input_size);
     ~Model ();
-    void params (size_t epochs, size_t iterations, size_t batch_size, double learning_rate, double validation_split);
-    void train (const std::unordered_map<std::string, std::vector<double>>& data, const std::vector<std::string>& output_keys);
+    void params (size_t epochs, size_t iterations, double learning_rate, double validation_split);
+    void train (Dictionary<std::vector<double>>& data, const std::vector<std::string>& output_keys);
     void predict (const std::vector<double>& input_values);
+    void add (LAYER l, ACTIVATION a, size_t output_size);
 };
 
 namespace act {

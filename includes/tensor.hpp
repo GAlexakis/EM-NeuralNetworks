@@ -6,6 +6,10 @@
 #include <limits>
 #include <omp.h>
 
+#ifndef M_PIl
+#define M_PIl 0xc.90fdaa22168c235p-2L
+#endif
+
 template<class T> class Tensor {
 private:
     size_t size;
@@ -146,7 +150,7 @@ public:
     }
 
     template <class... Args> T& operator() (Args ...args) const {
-        std::vector<int> indices = {args...};
+        std::vector<size_t> indices = {args...};
         if (indices.size() != dimensions.size()) {
             std::cerr << "\x1B[31mERROR: INCOMPATIBLE DIMENSIONS\033[0m\n";
             exit(1);
@@ -193,7 +197,7 @@ public:
         #pragma omp parallel
         {
             std::vector<size_t> indices1 = std::vector<size_t>(result.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < result.length(); i++) {
                 size_t divider = result.length()/result.dims()[0];
                 size_t index = 0;
@@ -246,7 +250,7 @@ public:
             exit(1);
         }
         else if (dimensions.size() == 2) {
-            #pragma omp parallel for collapse(2)
+            #pragma omp parallel for simd collapse(2)
             for (size_t i = 0; i < dimensions[1]; i++) {
                 for (size_t j = 0; j < dimensions[0]; j++)
                     result(i, j) = (*this)(j ,i);
@@ -266,7 +270,7 @@ template <class T, class T1> Tensor<T> operator> (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -284,7 +288,7 @@ template <class T, class T1> Tensor<T> operator> (T1 a, const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -356,7 +360,7 @@ template <class T> Tensor<T> operator> (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t2.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t1.length(); i++) {
                 size_t divider = t1.length()/t1.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -375,7 +379,7 @@ template <class T> Tensor<T> operator> (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t2.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t1.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t2.length(); i++) {
                 size_t divider = t2.length()/t2.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -399,7 +403,7 @@ template <class T, class T1> Tensor<T> operator< (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -417,7 +421,7 @@ template <class T, class T1> Tensor<T> operator< (T1 a, const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -489,7 +493,7 @@ template <class T> Tensor<T> operator< (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t2.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t1.length(); i++) {
                 size_t divider = t1.length()/t1.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -508,7 +512,7 @@ template <class T> Tensor<T> operator< (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t2.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t1.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t2.length(); i++) {
                 size_t divider = t2.length()/t2.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -532,7 +536,7 @@ template <class T, class T1> Tensor<T> operator+ (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -550,7 +554,7 @@ template <class T, class T1> Tensor<T> operator+ (T1 a, const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -622,7 +626,7 @@ template <class T> Tensor<T> operator+ (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t2.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t1.length(); i++) {
                 size_t divider = t1.length()/t1.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -641,7 +645,7 @@ template <class T> Tensor<T> operator+ (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t2.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t1.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t2.length(); i++) {
                 size_t divider = t2.length()/t2.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -665,7 +669,7 @@ template <class T, class T1> Tensor<T> operator- (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -683,7 +687,7 @@ template <class T, class T1> Tensor<T> operator- (T1 a, const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -759,7 +763,7 @@ template <class T> Tensor<T> operator- (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t2.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t1.length(); i++) {
                 size_t divider = t1.length()/t1.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -778,7 +782,7 @@ template <class T> Tensor<T> operator- (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t2.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t1.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t2.length(); i++) {
                 size_t divider = t2.length()/t2.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -802,7 +806,7 @@ template <class T, class T1> Tensor<T> operator* (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -820,7 +824,7 @@ template <class T, class T1> Tensor<T> operator* (T1 a, const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -892,7 +896,7 @@ template <class T> Tensor<T> operator* (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t2.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t1.length(); i++) {
                 size_t divider = t1.length()/t1.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -911,7 +915,7 @@ template <class T> Tensor<T> operator* (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t2.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t1.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t2.length(); i++) {
                 size_t divider = t2.length()/t2.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -935,7 +939,7 @@ template <class T, class T1> Tensor<T> operator/ (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -953,7 +957,7 @@ template <class T, class T1> Tensor<T> operator/ (T1 a, const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1025,7 +1029,7 @@ template <class T> Tensor<T> operator/ (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t2.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t1.length(); i++) {
                 size_t divider = t1.length()/t1.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -1044,7 +1048,7 @@ template <class T> Tensor<T> operator/ (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t2.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t1.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t2.length(); i++) {
                 size_t divider = t2.length()/t2.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -1069,7 +1073,7 @@ template <class T, class T1> Tensor<T> operator% (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1087,7 +1091,7 @@ template <class T, class T1> Tensor<T> operator% (T1 a, const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1159,7 +1163,7 @@ template <class T> Tensor<T> operator% (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t1.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t2.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t1.length(); i++) {
                 size_t divider = t1.length()/t1.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -1178,7 +1182,7 @@ template <class T> Tensor<T> operator% (const Tensor<T>& t1, const Tensor<T>& t2
         {
             std::vector<size_t> indices1 = std::vector<size_t>(t2.dims().size());
             std::vector<size_t> indices2 = std::vector<size_t>(t1.dims().size());
-            #pragma omp for
+            #pragma omp for simd
             for (size_t i = 0; i < t2.length(); i++) {
                 size_t divider = t2.length()/t2.dims()[0];
                 for (size_t j = 0; j < indices1.size(); j++) {
@@ -1206,9 +1210,9 @@ template <class T> Tensor<T> mul (const Tensor<T>& t1, const Tensor<T>& t2) {
         std::cerr << "\x1B[31mERROR: MATRIX MULTIPLICATION FAILED\033[0m\n";
         exit(1);
     }
-    std::vector dimen = {t1.dims()[0], t2.dims()[1]};
+    std::vector<size_t> dimen = {t1.dims()[0], t2.dims()[1]};
     Tensor<T> result(dimen);
-    #pragma omp parallel for collapse(2)
+    #pragma omp parallel for simd collapse(2)
     for(size_t i = 0; i < result.dims()[0]; i++) {
         for(size_t j = 0; j < result.dims()[1]; j++) {
             result(i, j) = 0;
@@ -1227,7 +1231,7 @@ template <class T> Tensor<T> cos (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1244,7 +1248,7 @@ template <class T> Tensor<T> sin (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1261,7 +1265,7 @@ template <class T> Tensor<T> tan (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1278,7 +1282,7 @@ template <class T> Tensor<T> acos (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1295,7 +1299,7 @@ template <class T> Tensor<T> asin (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1312,7 +1316,7 @@ template <class T> Tensor<T> atan (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1332,7 +1336,7 @@ template <class T> Tensor<T> cosh (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1349,7 +1353,7 @@ template <class T> Tensor<T> sinh (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1366,7 +1370,7 @@ template <class T> Tensor<T> tanh (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1383,7 +1387,7 @@ template <class T> Tensor<T> acosh (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1400,7 +1404,7 @@ template <class T> Tensor<T> asinh (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1417,7 +1421,7 @@ template <class T> Tensor<T> atanh (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1437,7 +1441,7 @@ template <class T> Tensor<T> exp (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1454,7 +1458,7 @@ template <class T> Tensor<T> exp2 (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1471,7 +1475,7 @@ template <class T> Tensor<T> expm1 (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1491,7 +1495,7 @@ template <class T> Tensor<T> log (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
 
             size_t divider = t1.length()/t1.dims()[0];
@@ -1510,7 +1514,7 @@ template <class T> Tensor<T> log10 (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1527,7 +1531,7 @@ template <class T> Tensor<T> log2 (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1544,7 +1548,7 @@ template <class T> Tensor<T> log1p (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1564,7 +1568,7 @@ template <class T> Tensor<T> sqrt (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1581,7 +1585,7 @@ template <class T> Tensor<T> cbrt (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1601,7 +1605,7 @@ template <class T> Tensor<T> ceil (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1618,7 +1622,7 @@ template <class T> Tensor<T> floor (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1635,7 +1639,7 @@ template <class T> Tensor<T> round (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1652,7 +1656,7 @@ template <class T> Tensor<T> trunc (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1672,7 +1676,7 @@ template <class T, class T1> Tensor<T> min (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1689,7 +1693,7 @@ template <class T, class T1> Tensor<T> max (const Tensor<T>& t1, T1 a) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {
@@ -1706,7 +1710,7 @@ template <class T> Tensor<T> abs (const Tensor<T>& t1) {
     #pragma omp parallel
     {
         std::vector<size_t> indices1(t1.dims().size());
-        #pragma omp for
+        #pragma omp for simd
         for (size_t i = 0; i < t1.length(); i++) {
             size_t divider = t1.length()/t1.dims()[0];
             for (size_t j = 0; j < indices1.size(); j++) {

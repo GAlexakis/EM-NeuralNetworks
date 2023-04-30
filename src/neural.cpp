@@ -1,20 +1,21 @@
 #include "parser.hpp"
 #include "tensor.hpp"
+#include "progress.hpp"
 #include "neural.hpp"
 
 Dense::Dense (size_t input_size, size_t output_size, size_t batch_size) {
     weights = new Tensor<double>(input_size, output_size);
-    biases  = new Tensor<double>(1, output_size);
+    biases  = new Tensor<double>((size_t)1, output_size);
     inputs  = new Tensor<double>(batch_size, input_size);
     errors  = new Tensor<double>(batch_size, output_size);
 
-    for( size_t i = 0; i < input_size; i++) {
+    for(size_t i = 0; i < input_size; i++) {
             for( size_t j = 0; j < output_size; j++) {
                 (*weights)(i, j) = rand()/(double)(RAND_MAX) - 0.5;
             }
         }
-        for( size_t i = 0; i < output_size; i++) {
-            (*biases)(0, i) = 0;
+        for(size_t i = 0; i < output_size; i++) {
+            (*biases)((size_t)0, i) = 0;
         }
 }
 Dense::~Dense () {
@@ -87,65 +88,74 @@ void Network::fix (double learning_rate) {
     for (auto layer : layers) layer->fix(learning_rate);
 }
 
-Model::Model (Layer* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func) {
+Model::Model (Network* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t batch_size) {
+    this->batch_size = batch_size;
     this->network = network;
     this->error_func = error_func;
+    this->last_size = 0;
+}
+Model::Model (std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t batch_size, size_t input_size) {
+    this->batch_size = batch_size;
+    this->network = new Network();
+    this->error_func = error_func;
+    this->last_size = input_size;
 }
 Model::~Model () {
     delete network;
 }
-void Model::params (size_t epochs, size_t iterations, size_t batch_size, double learning_rate, double validation_split) {
+void Model::params (size_t epochs, size_t iterations, double learning_rate, double validation_split) {
     this->epochs = epochs;
     this->iterations = iterations;
-    this->batch_size = batch_size;
     this->learning_rate = learning_rate;
     this->validation_split = validation_split;
 }
-void Model::train (const std::unordered_map<std::string, std::vector<double>>& data, const std::vector<std::string>& output_keys) {
-    std::unordered_map<std::string, std::vector<double>> data_inputs;
-    std::unordered_map<std::string, std::vector<double>> data_outputs;
-    std::unordered_map<std::string, std::vector<double>> training_inputs;
-    std::unordered_map<std::string, std::vector<double>> training_outputs;
-    std::unordered_map<std::string, std::vector<double>> validation_inputs;
-    std::unordered_map<std::string, std::vector<double>> validation_outputs;
+void Model::train (Dictionary<std::vector<double>>& data, const std::vector<std::string>& output_keys) {
+    Dictionary<std::vector<double>> data_inputs;
+    Dictionary<std::vector<double>> data_outputs;
+    Dictionary<std::vector<double>> training_inputs;
+    Dictionary<std::vector<double>> training_outputs;
+    Dictionary<std::vector<double>> validation_inputs;
+    Dictionary<std::vector<double>> validation_outputs;
 
-    for (const auto& pair : data) {
+
+    for (size_t i = 0; i < data.size(); i++) {
         bool found = false;
         for (const auto& key : output_keys) {
-            std::cout << key << " == " << pair.first << '\n';
-            if (pair.first.find(key) != std::string::npos) {
+            if (data(i).find(key) != std::string::npos) {
                 found = true;
-                std::cout << "TRUE\n";
                 break;
             }
         }
-        if (found) data_outputs.insert(pair);
-        else data_inputs.insert(pair);
+        if (found) data_outputs.push_back(data(i), data[i]);
+        else data_inputs.push_back(data(i), data[i]);
     }
-    for (const auto& pair : data_inputs) {
-        std::vector<double> training_vector(pair.second.begin(), pair.second.begin() + validation_split*pair.second.size());
-        std::vector<double> validation_vector(pair.second.begin() + validation_split*pair.second.size(), pair.second.end());
-        training_inputs.insert({pair.first, training_vector});
-        validation_inputs.insert({pair.first, validation_vector});
+    for (size_t i = 0; i < data_inputs.size(); i++) {
+        std::vector<double> training_vector(data_inputs[i].begin(), data_inputs[i].begin() + validation_split*data_inputs[i].size());
+        std::vector<double> validation_vector(data_inputs[i].begin() + validation_split*data_inputs[i].size(), data_inputs[i].end());
+        training_inputs.push_back(data_inputs(i), training_vector);
+        validation_inputs.push_back(data_inputs(i), validation_vector);
     }
-    for (const auto& pair : data_outputs) {
-        std::vector<double> training_vector(pair.second.begin(), pair.second.begin() + validation_split*pair.second.size());
-        std::vector<double> validation_vector(pair.second.begin() + validation_split*pair.second.size(), pair.second.end());
-        training_outputs.insert({pair.first, training_vector});
-        validation_outputs.insert({pair.first, validation_vector});
+    for (size_t i = 0; i < data_outputs.size(); i++) {
+        std::vector<double> training_vector(data_outputs[i].begin(), data_outputs[i].begin() + validation_split*data_outputs[i].size());
+        std::vector<double> validation_vector(data_outputs[i].begin() + validation_split*data_outputs[i].size(), data_outputs[i].end());
+        training_outputs.push_back(data_outputs(i), training_vector);
+        validation_outputs.push_back(data_outputs(i), validation_vector);
     }
     for (size_t epoch = 0; epoch < epochs; epoch++) {
+        Progress bar({iterations - 1});
         size_t output_size;
         size_t input_size;
+        double average_cost;
+        double sum_cost = 0;
         for (size_t iteration = 0; iteration < iterations; iteration++) {
 
 
             std::vector<double> input_values;
             for (size_t batch = 0; batch < batch_size; batch++) {
                 input_size = 0;
-                for (const auto& pair : training_inputs) {
+                for (size_t i = 0; i < training_inputs.size(); i++) {
                     input_size++;
-                    input_values.push_back(pair.second[(batch + iteration*batch_size)%pair.second.size()]);
+                    input_values.push_back(training_inputs[i][(batch + iteration*batch_size)%training_inputs[i].size()]);
                 }
             }
             std::vector<size_t> input_dims = {batch_size, input_size};
@@ -155,9 +165,9 @@ void Model::train (const std::unordered_map<std::string, std::vector<double>>& d
             std::vector<double> output_values;
             for (size_t batch = 0; batch < batch_size; batch++) {
                 output_size = 0;
-                for (const auto& pair : training_outputs) {
+                for (size_t i = 0; i < training_outputs.size(); i++) {
                     output_size++;
-                    output_values.push_back(pair.second[(batch + iteration*batch_size)%pair.second.size()]);
+                    output_values.push_back(training_outputs[i][(batch + iteration*batch_size)%training_outputs[i].size()]);
                 }
             }
             std::vector<size_t> output_dims = {batch_size, output_size};
@@ -169,16 +179,23 @@ void Model::train (const std::unordered_map<std::string, std::vector<double>>& d
             network->backwards(trainer);
             network->fix(learning_rate);
             delete trainer;
+
+            sum_cost += training_cost;
+            average_cost = sum_cost/(iteration + 1);
+
+            bar.show({" EPOCH: "+ std::to_string(epoch) + " TRAINING COST: " + std::to_string(average_cost) + "   "});
+            bar.update(0);
+
         }
 
 
-        size_t validation_size = validation_inputs.begin()->second.size();
+        size_t validation_size = validation_inputs[0].size();
 
 
         std::vector<double> validation_input_values;
         for (size_t i = 0; i < validation_size; i++) {
-            for (const auto pair : validation_inputs) {
-                validation_input_values.push_back(pair.second[i]);
+            for (size_t j = 0; j < validation_inputs.size(); j++) {
+                validation_input_values.push_back(validation_inputs[j][i]);
             }
         }
         std::vector<size_t> validation_input_dims = {validation_size, input_size};
@@ -187,8 +204,8 @@ void Model::train (const std::unordered_map<std::string, std::vector<double>>& d
 
         std::vector<double> validation_output_values;
         for (size_t i = 0; i < validation_size; i++) {
-            for (const auto pair : validation_outputs) {
-                validation_output_values.push_back(pair.second[i]);
+            for (size_t j = 0; j < validation_outputs.size(); j++) {
+                validation_output_values.push_back(validation_outputs[j][i]);
             }
         }
         std::vector<size_t> validation_output_dims = {validation_size, output_size};
@@ -197,8 +214,9 @@ void Model::train (const std::unordered_map<std::string, std::vector<double>>& d
 
         network->predict(validator);
         double validation_cost = error_func(validator, validation_expected);
-        std::cout << "EPOCH " << epoch << ": COST = " << validation_cost << '\n';
         delete validator;
+
+        bar.show({" EPOCH: "+ std::to_string(epoch) + " TRAINING COST: " + std::to_string(average_cost) + " VALIDATION COST: " + std::to_string(validation_cost) + "   "});
 
     }
 }
@@ -207,6 +225,36 @@ void Model::predict (const std::vector<double>& input_values) {
     network->predict(predictor);
     predictor->print();
     delete predictor;
+}
+void Model::add (LAYER l, ACTIVATION a, size_t output_size) {
+    switch(l) {
+    case LAYER::DENSE:
+        network->add(new Dense(last_size, output_size, batch_size));
+        last_size = output_size;
+        break;
+    default:
+        break;
+    }
+
+    switch(a) {
+        case ACTIVATION::LINEAR:
+            network->add(new Activation(last_size, batch_size, act::linear, der::linear));
+            break;
+        case ACTIVATION::SIGMOID:
+            network->add(new Activation(last_size, batch_size, act::sigmoid, der::sigmoid));
+            break;
+        case ACTIVATION::TANH:
+            network->add(new Activation(last_size, batch_size, act::tanh, der::tanh));
+            break;
+        case ACTIVATION::RELU:
+            network->add(new Activation(last_size, batch_size, act::relu, der::relu));
+            break;
+        case ACTIVATION::SOFTMAX:
+            network->add(new Activation(last_size, batch_size, act::softmax, der::softmax));
+            break;
+        default:
+        break;
+    }
 }
 
 void act::sigmoid (Tensor<double>* t) {
