@@ -54,6 +54,19 @@ public:
         }
         std::cout << std::endl;
     }
+
+    std::vector<std::string> get_keys () const {
+        return keys;
+    }
+
+    std::unordered_map<std::string, T> get_data () const {
+        return data;
+    }
+
+    void operator= (const Dictionary<T>& src) {
+        keys = src.get_keys();
+        data = src.get_data();
+    }
 };
 
 template <class T> Dictionary<std::vector<T>> parse_csv (std::string filepath) {
@@ -171,7 +184,30 @@ template <class T> Dictionary<std::vector<T>> parse_general_csv (std::string fil
     return data;
 }
 
-template <class T> void print_map (Dictionary<T>& data) {
+template <class T> void make_one_hot (Dictionary<T>& data, std::string key, std::vector<std::string> one_hot_keys) {
+    Dictionary<T> new_data;
+    for (int i = 0; i < data.size(); i++){
+        if (data(i).find(key) != std::string::npos) {
+            for (const auto& one_hot_key : one_hot_keys) {
+                new_data.push_back(one_hot_key, {});
+            }
+            for (int j = 0; j < data[i].size(); j++) {
+                for (int k = 0; k < one_hot_keys.size(); k++) {
+                    if (data[i][j] == k)
+                        new_data[one_hot_keys[k]].push_back(1);
+                    else
+                        new_data[one_hot_keys[k]].push_back(0);
+                }
+            }
+        }
+        else {
+            new_data.push_back(data(i), data[i]);
+        }
+    }
+    data =  new_data;
+}
+
+template <class T> void print_dictionary (Dictionary<T>& data) {
     data.print_keys();
     for (size_t i = 0; i < data[0].size(); i++) {
         for (size_t j = 0; j < data.size(); j++)

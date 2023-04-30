@@ -142,7 +142,7 @@ void Model::train (Dictionary<std::vector<double>>& data, const std::vector<std:
         validation_outputs.push_back(data_outputs(i), validation_vector);
     }
     for (size_t epoch = 0; epoch < epochs; epoch++) {
-        Progress bar({iterations - 1});
+        Progress bar({(int)iterations - 1});
         size_t output_size;
         size_t input_size;
         double average_cost;
