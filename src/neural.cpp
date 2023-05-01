@@ -3,11 +3,11 @@
 #include "progress.hpp"
 #include "neural.hpp"
 
-Dense::Dense (size_t input_size, size_t output_size, size_t batch_size) {
+Dense::Dense (size_t input_size, size_t output_size) {
     weights = new Tensor<double>(input_size, output_size);
     biases  = new Tensor<double>((size_t)1, output_size);
-    inputs  = new Tensor<double>(batch_size, input_size);
-    errors  = new Tensor<double>(batch_size, output_size);
+    inputs  = new Tensor<double>;
+    errors  = new Tensor<double>;
 
     for(size_t i = 0; i < input_size; i++) {
             for( size_t j = 0; j < output_size; j++) {
@@ -40,8 +40,8 @@ void Dense::fix (double learning_rate) {
     *biases = *biases - (*errors)[0]*learning_rate/(double)errors->dims()[0];
 }
 
-Activation::Activation (size_t input_size, size_t batch_size, std::function<void(Tensor<double>*)> func, std::function<void(Tensor<double>*)> der) {
-    inputs  = new Tensor<double>(batch_size, input_size);
+Activation::Activation (size_t input_size, std::function<void(Tensor<double>*)> func, std::function<void(Tensor<double>*)> der) {
+    inputs  = new Tensor<double>;
     this->func = func;
     this->der = der;
 }
@@ -88,14 +88,12 @@ void Network::fix (double learning_rate) {
     for (auto layer : layers) layer->fix(learning_rate);
 }
 
-Model::Model (Network* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t batch_size) {
-    this->batch_size = batch_size;
+Model::Model (Network* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func) {
     this->network = network;
     this->error_func = error_func;
     this->last_size = 0;
 }
-Model::Model (std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t batch_size, size_t input_size) {
-    this->batch_size = batch_size;
+Model::Model (std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t input_size) {
     this->network = new Network();
     this->error_func = error_func;
     this->last_size = input_size;
@@ -103,13 +101,14 @@ Model::Model (std::function<double(Tensor<double>*, const Tensor<double>&)> erro
 Model::~Model () {
     delete network;
 }
-void Model::params (size_t epochs, size_t iterations, double learning_rate, double validation_split) {
+void Model::params (size_t epochs, size_t iterations, size_t batch_size, double learning_rate, double validation_split) {
     this->epochs = epochs;
     this->iterations = iterations;
+    this->batch_size = batch_size;
     this->learning_rate = learning_rate;
     this->validation_split = validation_split;
 }
-void Model::train (Dictionary<std::vector<double>>& data, const std::vector<std::string>& output_keys) {
+void Model::train (Dictionary<std::vector<double>>& data, const std::vector<std::string>& output_keys, const std::vector<std::string>& ignore_keys) {
     Dictionary<std::vector<double>> data_inputs;
     Dictionary<std::vector<double>> data_outputs;
     Dictionary<std::vector<double>> training_inputs;
@@ -119,6 +118,14 @@ void Model::train (Dictionary<std::vector<double>>& data, const std::vector<std:
 
 
     for (size_t i = 0; i < data.size(); i++) {
+        bool ignorefound = false;
+        for (const auto& key : ignore_keys) {
+            if (data(i).find(key) != std::string::npos) {
+                ignorefound = true;
+                break;
+            }
+        }
+        if (ignorefound) continue;
         bool found = false;
         for (const auto& key : output_keys) {
             if (data(i).find(key) != std::string::npos) {
@@ -142,7 +149,8 @@ void Model::train (Dictionary<std::vector<double>>& data, const std::vector<std:
         validation_outputs.push_back(data_outputs(i), validation_vector);
     }
     for (size_t epoch = 0; epoch < epochs; epoch++) {
-        Progress bar({(int)iterations - 1});
+        Progress bar({(int)iterations});
+        bar.show({""});
         size_t output_size;
         size_t input_size;
         double average_cost;
@@ -183,8 +191,8 @@ void Model::train (Dictionary<std::vector<double>>& data, const std::vector<std:
             sum_cost += training_cost;
             average_cost = sum_cost/(iteration + 1);
 
-            bar.show({" EPOCH: "+ std::to_string(epoch) + " TRAINING COST: " + std::to_string(average_cost) + "   "});
             bar.update(0);
+            bar.show({" EPOCH: "+ std::to_string(epoch) + " TRAINING COST: " + std::to_string(average_cost) + "   "});
 
         }
 
@@ -229,7 +237,7 @@ void Model::predict (const std::vector<double>& input_values) {
 void Model::add (LAYER l, ACTIVATION a, size_t output_size) {
     switch(l) {
     case LAYER::DENSE:
-        network->add(new Dense(last_size, output_size, batch_size));
+        network->add(new Dense(last_size, output_size));
         last_size = output_size;
         break;
     default:
@@ -238,19 +246,19 @@ void Model::add (LAYER l, ACTIVATION a, size_t output_size) {
 
     switch(a) {
         case ACTIVATION::LINEAR:
-            network->add(new Activation(last_size, batch_size, act::linear, der::linear));
+            network->add(new Activation(last_size, act::linear, der::linear));
             break;
         case ACTIVATION::SIGMOID:
-            network->add(new Activation(last_size, batch_size, act::sigmoid, der::sigmoid));
+            network->add(new Activation(last_size, act::sigmoid, der::sigmoid));
             break;
         case ACTIVATION::TANH:
-            network->add(new Activation(last_size, batch_size, act::tanh, der::tanh));
+            network->add(new Activation(last_size, act::tanh, der::tanh));
             break;
         case ACTIVATION::RELU:
-            network->add(new Activation(last_size, batch_size, act::relu, der::relu));
+            network->add(new Activation(last_size, act::relu, der::relu));
             break;
         case ACTIVATION::SOFTMAX:
-            network->add(new Activation(last_size, batch_size, act::softmax, der::softmax));
+            network->add(new Activation(last_size, act::softmax, der::softmax));
             break;
         default:
         break;

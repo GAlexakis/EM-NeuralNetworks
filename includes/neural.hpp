@@ -30,7 +30,7 @@ private:
     Tensor<double>* inputs;
     Tensor<double>* errors;
 public:
-    Dense (size_t input_size, size_t output_size, size_t batch_size);
+    Dense (size_t input_size, size_t output_size);
     ~Dense ();
     void forward (Tensor<double>* propagator) override;
     void backwards (Tensor<double>* propagator) override;
@@ -44,7 +44,7 @@ private:
     std::function<void(Tensor<double>*)> func;
     std::function<void(Tensor<double>*)> der;
 public:
-    Activation (size_t input_size, size_t batch_size, std::function<void(Tensor<double>*)> func, std::function<void(Tensor<double>*)> der);
+    Activation (size_t input_size, std::function<void(Tensor<double>*)> func, std::function<void(Tensor<double>*)> der);
     ~Activation ();
     void forward (Tensor<double>* propagator) override;
     void backwards (Tensor<double>* propagator) override;
@@ -76,11 +76,11 @@ private:
     double validation_split;
     std::function<double(Tensor<double>*, const Tensor<double>&)> error_func;
 public:
-    Model (Network* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t batch_size);
-    Model (std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t batch_size, size_t input_size);
+    Model (Network* network, std::function<double(Tensor<double>*, const Tensor<double>&)> error_func);
+    Model (std::function<double(Tensor<double>*, const Tensor<double>&)> error_func, size_t input_size);
     ~Model ();
-    void params (size_t epochs, size_t iterations, double learning_rate, double validation_split);
-    void train (Dictionary<std::vector<double>>& data, const std::vector<std::string>& output_keys);
+    void params (size_t epochs, size_t iterations, size_t batch_size, double learning_rate, double validation_split);
+    void train (Dictionary<std::vector<double>>& data, const std::vector<std::string>& output_keys, const std::vector<std::string>& ignore_keys);
     void predict (const std::vector<double>& input_values);
     void add (LAYER l, ACTIVATION a, size_t output_size);
 };

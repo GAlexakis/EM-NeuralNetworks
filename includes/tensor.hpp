@@ -63,17 +63,21 @@ public:
         size = src.length();
         dimensions = src.dims();
         ptr = new T[size];
-        for(size_t i = 0; i < size; i++)
+        #pragma omp parallel
         {
             std::vector<size_t> indices(dimensions.size());
-            size_t divider = size/dimensions[0];
-            size_t index = 0;
-            for (size_t j = 0; j < indices.size(); j++) {
-                indices[j] = (i/divider)%dimensions[j];
-                index += divider*indices[j];
-                divider /= j == indices.size() - 1 ? 1 : dimensions[j + 1];
+            #pragma omp for simd
+            for(size_t i = 0; i < size; i++)
+            {
+                size_t divider = size/dimensions[0];
+                size_t index = 0;
+                for (size_t j = 0; j < indices.size(); j++) {
+                    indices[j] = (i/divider)%dimensions[j];
+                    index += divider*indices[j];
+                    divider /= j == indices.size() - 1 ? 1 : dimensions[j + 1];
+                }
+                ptr[index] = src(indices);
             }
-            ptr[index] = src(indices);
         }
     }
 
@@ -222,16 +226,20 @@ public:
         dimensions = src.dims();
         delete[] ptr;
         ptr = new T[size];
-        for(size_t i = 0; i < size; i++) {
+        #pragma omp parallel
+        {
             std::vector<size_t> indices(dimensions.size());
-            size_t divider = size/dimensions[0];
-            size_t index = 0;
-            for (size_t j = 0; j < indices.size(); j++) {
-                indices[j] = (i/divider)%dimensions[j];
-                index += divider*indices[j];
-                divider /= j == indices.size() - 1 ? 1 : dimensions[j + 1];
+            #pragma omp for simd
+            for(size_t i = 0; i < size; i++) {
+                size_t divider = size/dimensions[0];
+                size_t index = 0;
+                for (size_t j = 0; j < indices.size(); j++) {
+                    indices[j] = (i/divider)%dimensions[j];
+                    index += divider*indices[j];
+                    divider /= j == indices.size() - 1 ? 1 : dimensions[j + 1];
+                }
+                ptr[index] = src(indices);
             }
-            ptr[index] = src(indices);
         }
     }
 
